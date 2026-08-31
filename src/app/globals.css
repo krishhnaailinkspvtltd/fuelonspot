@@ -1,0 +1,296 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   FuelOnSpot design tokens
+   Palette sampled directly from the FuelOnSpot logo artwork.
+   ========================================================================== */
+
+@theme {
+  /* Brand navy — headings, nav, strong-contrast sections */
+  --color-navy-950: #04182e;
+  --color-navy-900: #072744;
+  --color-navy-800: #0b3357;
+  --color-navy-700: #124470;
+  --color-navy-600: #1a5a8e;
+  --color-navy-500: #2a7ab5;
+  --color-sky-400: #4fa3d1;
+
+  /* Brand green — actions, fuel-related highlights */
+  --color-fuel-800: #0a5b2b;
+  --color-fuel-700: #0b6b33;
+  --color-fuel-600: #0e7c3c;
+  --color-fuel-500: #17a34a;
+  --color-fuel-400: #4fae3b;
+  --color-fuel-100: #dff0e4;
+  --color-fuel-50: #f0f8f2;
+
+  /* Neutrals */
+  --color-ink-900: #0b3357;
+  --color-ink-700: #33465c;
+  --color-ink-600: #47576d;
+  --color-ink-500: #5a6b80;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f4f7fa;
+  --color-surface-tint: #eaf1f7;
+  --color-line: #dde4ec;
+  --color-line-strong: #c3d0de;
+
+  /* On dark */
+  --color-onnavy-100: #e6eef6;
+  --color-onnavy-300: #a9bdd2;
+  --color-onnavy-500: #6f8aa6;
+
+  --font-display: var(--font-manrope), "Manrope", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  --breakpoint-xs: 30rem;
+
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* clears the sticky header when jumping to an anchor */
+    scroll-padding-top: 5.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-top: 6.5rem;
+    }
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink-600);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-navy-800);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--color-navy-800);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-fuel-600);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+/* ==========================================================================
+   Type scale — fluid, set once so every section stays in the same rhythm
+   ========================================================================== */
+
+@utility text-display {
+  font-size: clamp(2.375rem, 1.35rem + 4.4vw, 4.5rem);
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+}
+
+@utility text-h2 {
+  font-size: clamp(1.875rem, 1.25rem + 2.6vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+@utility text-h3 {
+  font-size: clamp(1.25rem, 1.08rem + 0.75vw, 1.5rem);
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+}
+
+@utility text-lead {
+  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  line-height: 1.6;
+  letter-spacing: -0.005em;
+}
+
+@utility text-micro {
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Tabular figures for anything numeric (steps, phone, quantities) */
+@utility nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ==========================================================================
+   Surface treatments — blueprint grid + hairline rules.
+   Used instead of gradients/glass so dark sections read as engineered.
+   ========================================================================== */
+
+@utility blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center;
+}
+
+@utility hatch-light {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-line) 0,
+    var(--color-line) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+}
+
+/* ==========================================================================
+   Motion — restrained, fast, and fully disabled under reduced-motion
+   ========================================================================== */
+
+@keyframes fos-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fos-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fos-pulse-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+
+/* Client ticker — the track holds two identical copies, so translating it by
+   exactly -50% loops seamlessly. */
+@keyframes fos-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.fos-marquee-track {
+  animation: fos-marquee var(--marquee-duration, 40s) linear infinite;
+  will-change: transform;
+}
+
+.fos-marquee:hover .fos-marquee-track,
+.fos-marquee:focus-within .fos-marquee-track {
+  animation-play-state: paused;
+}
+
+/* Above-the-fold entrance — pure CSS, runs at parse time, never waits for JS. */
+.fos-enter {
+  animation: fos-rise 0.62s var(--ease-out-expo) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.fos-enter-fade {
+  animation: fos-fade 0.7s ease both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.fos-reveal,
+.fos-fade {
+  opacity: 0;
+}
+
+.fos-reveal[data-visible="true"] {
+  animation: fos-rise 0.62s var(--ease-out-expo) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.fos-fade[data-visible="true"] {
+  animation: fos-fade 0.7s ease both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .fos-reveal,
+  .fos-fade,
+  .fos-enter,
+  .fos-enter-fade {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+
+  .fos-marquee-track {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .fos-marquee {
+    overflow-x: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* The logo is a full-colour mark on a light ground; on navy it sits on a
+   white plate rather than being recoloured. */
+.logo-plate {
+  background: #fff;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.25);
+}
