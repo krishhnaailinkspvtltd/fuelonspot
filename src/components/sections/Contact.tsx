@@ -585,7 +585,7 @@ export function Contact() {
                         {...fieldProps("company")}
                         type="text"
                         autoComplete="organization"
-                        placeholder="Optional"
+                        placeholder="Your company name"
                         className={controlClass(false, "h-12")}
                       />
                     </Field>
@@ -614,7 +614,7 @@ export function Contact() {
                         {...fieldProps("email")}
                         type="email"
                         autoComplete="email"
-                        placeholder="Optional"
+                        placeholder="you@example.com"
                         className={controlClass(Boolean(errors.email), "h-12")}
                       />
                     </Field>
