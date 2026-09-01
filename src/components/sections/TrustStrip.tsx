@@ -78,7 +78,9 @@ export function TrustStrip() {
                   <p className="text-balance font-display text-[0.9375rem] font-bold leading-snug tracking-[-0.01em] text-white lg:min-h-[2.6rem]">
                     {item.title}
                   </p>
-                  <p className="mt-1 text-[0.8125rem] leading-[1.45] text-onnavy-500">
+                  {/* `nums` because one of these notes is the phone number;
+                      it is inert on the cells that hold plain text. */}
+                  <p className="nums mt-1 text-[0.8125rem] leading-[1.45] text-onnavy-500">
                     {item.note}
                   </p>
                 </div>

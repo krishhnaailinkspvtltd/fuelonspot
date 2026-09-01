@@ -2,9 +2,8 @@ import Image from "next/image";
 import { ArrowRight, MapPin, Phone } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { ButtonLink } from "@/components/ui/Button";
-import { LogoMark } from "@/components/ui/Logo";
 import { Enter } from "@/components/ui/Enter";
-import { districts, hero, site } from "@/lib/site";
+import { association, hero, serviceAreas, site } from "@/lib/site";
 
 export function Hero() {
   return (
@@ -43,6 +42,30 @@ export function Hero() {
                   {site.addressShort}
                 </span>
               </div>
+
+              {/* Association badge. Its own line rather than a third chip in the
+                  row above: at 375px that row already wraps, and a third item
+                  would push the headline down another line.
+
+                  Deliberately quieter than the status chip beside it — neutral
+                  plate, hairline border, no green. Green is reserved for things
+                  that are actionable or live, and this is provenance. It must
+                  read under the h1, never against it.
+
+                  Text, not a mark: no authorised Jio-bp logo asset exists in
+                  the project. See the note in site.ts. */}
+              <p className="mt-4 inline-flex items-center gap-2.5 rounded-[3px] border border-line bg-white py-1.5 pl-3 pr-3.5">
+                <span className="text-micro text-ink-500">
+                  {association.label}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="h-3.5 w-px shrink-0 bg-line-strong"
+                />
+                <span className="font-display text-[0.9375rem] font-extrabold leading-none tracking-[-0.02em] text-navy-800">
+                  {association.partner}
+                </span>
+              </p>
             </Enter>
 
             <Enter delay={70}>
@@ -82,13 +105,13 @@ export function Hero() {
 
             <Enter delay={280}>
               <div className="mt-10 border-t border-line pt-5">
-                <p className="text-micro text-ink-500">Delivering across</p>
+                <p className="text-micro text-ink-500">Delivering in</p>
                 {/* A flex list, not inline text: the separator spans carry no
                     whitespace between them, so as inline content the whole row
-                    became a single unbreakable ~511px word and overflowed at
-                    375px. Flex wrapping gives every district its own break. */}
+                    became a single unbreakable word and overflowed at 375px.
+                    Flex wrapping gives every area its own break. */}
                 <ul className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-600">
-                  {districts.map((d, i) => (
+                  {serviceAreas.map((d, i) => (
                     <li key={d.name} className="flex items-center gap-x-2">
                       {i > 0 && (
                         <span aria-hidden="true" className="text-line-strong">
@@ -113,41 +136,37 @@ export function Hero() {
           {/* --------------------------------------------------- image */}
           <div className="lg:col-span-6 xl:col-span-6">
             <Enter variant="fade" delay={120}>
-              <figure className="relative">
-                <div className="relative overflow-hidden rounded-[4px] border border-line bg-navy-950">
+              {/* The supplied campaign poster, whole.
+
+                  `h-auto w-full` rather than a fixed aspect box with
+                  object-cover: the artwork is 5:4 and the old frame was 4:3,
+                  so covering it would have shaved the FuelOnSpot lockup off the
+                  top and the Jio-bp panel off the corner. Letting the image set
+                  its own height shows every part of it at its true ratio, with
+                  no letterbox bars either.
+
+                  The scrim, the green corner rules and the "Mobile refueling"
+                  caption that used to sit here are gone with the stock photo:
+                  the poster already carries the mark, the tagline, the 7 Lakh
+                  figure and a number, and site chrome on top of finished
+                  artwork reads as a mistake. */}
+              <figure className="relative mx-auto w-full max-w-lg lg:max-w-none">
+                <div className="overflow-hidden rounded-[4px] border border-line">
                   <Image
-                    src="/images/hero-refueling.jpg"
-                    alt="Road tanker delivering fuel through city traffic at dusk"
-                    width={1600}
-                    height={1200}
-                    priority
-                    sizes="(min-width: 1024px) 46vw, 100vw"
-                    className="aspect-[4/3] w-full object-cover sm:aspect-[16/10] lg:aspect-[4/3]"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-navy-950/70 to-transparent"
-                  />
-                  {/* green corner rule — the logo's accent, used structurally */}
-                  <div
-                    aria-hidden="true"
-                    className="absolute left-0 top-0 h-16 w-1 bg-fuel-500"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="absolute left-0 top-0 h-1 w-16 bg-fuel-500"
+                    src="/images/fuelonspot-diesel-delivery.webp"
+                    alt="FuelOnSpot diesel delivery at your doorstep"
+                    width={1254}
+                    height={1005}
+                    /* Above the fold and the LCP element on every breakpoint.
+                       `preload` is the Next 16 spelling of the old `priority`. */
+                    preload
+                    /* 75 softens the poster's small print; 90 is allowlisted in
+                       next.config.ts for exactly this kind of asset. */
+                    quality={90}
+                    sizes="(min-width: 1024px) 46vw, (min-width: 640px) 32rem, 100vw"
+                    className="h-auto w-full"
                   />
                 </div>
-
-                <figcaption className="relative z-10 mx-4 -mt-10 flex items-center gap-3.5 rounded-[4px] border border-line bg-white p-4 shadow-[0_16px_40px_-24px_rgba(4,24,46,0.55)] sm:mx-6 sm:-mt-12 sm:gap-4 sm:p-5">
-                  <LogoMark size={44} className="shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-micro text-navy-600">Mobile refueling</p>
-                    <p className="mt-1.5 font-display text-base font-extrabold tracking-[-0.02em] text-navy-800 sm:text-lg">
-                      {site.proposition}
-                    </p>
-                  </div>
-                </figcaption>
               </figure>
             </Enter>
           </div>

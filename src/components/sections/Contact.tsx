@@ -3,16 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
-  ArrowRight,
+  Building2,
   Check,
   ChevronDown,
-  Clock,
   ExternalLink,
-  Loader2,
   Mail,
+  Map,
   MapPin,
+  MessageCircle,
   Phone,
   PhoneCall,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -21,7 +22,14 @@ import { Reveal } from "@/components/ui/Reveal";
 import { Section } from "@/components/ui/Section";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { cn } from "@/lib/cn";
-import { deliveryWindows, serviceTypes, site, trustItems } from "@/lib/site";
+import {
+  deliveryWindows,
+  serviceAreas,
+  serviceTypes,
+  site,
+  trustItems,
+  whatsappHref,
+} from "@/lib/site";
 
 /* ------------------------------------------------------------------ model */
 
@@ -37,7 +45,13 @@ type FieldName =
   | "message";
 
 type FormValues = Record<FieldName, string>;
-type Status = "idle" | "submitting" | "success";
+
+/**
+ * "handoff", not "success". The request is only prepared here — it is not sent
+ * until the customer presses Send inside WhatsApp, and the UI must not claim
+ * otherwise.
+ */
+type Status = "idle" | "handoff";
 
 /** Visual order, which is also the order focus walks when validation fails. */
 const FIELD_ORDER: readonly FieldName[] = [
@@ -77,12 +91,12 @@ const EMPTY: FormValues = {
   message: "",
 };
 
-/* The 24×7 line reuses the trust strip's own wording rather than making a
-   fresh availability claim at the bottom of the page. */
-const helpline =
-  trustItems.find((item) => item.icon === "clock") ?? trustItems[0];
-
-/* -------------------------------------------------------------- validation */
+/* The closing note reuses the trust strip's own wording rather than writing a
+   fresh claim at the bottom of the page. It is the quality-and-quantity
+   commitment, NOT an availability claim: operating hours are not verified and
+   nothing on this page may imply them. */
+const assurance =
+  trustItems.find((item) => item.icon === "shield") ?? trustItems[0];
 
 /** Ten national digits, mobile series only. */
 const INDIAN_MOBILE = /^[6-9]\d{9}$/;
@@ -98,6 +112,99 @@ const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function nationalNumber(raw: string) {
   return raw.replace(/\D/g, "").replace(/^(?:0{0,2}91|0)(?=\d{10}$)/, "");
 }
+
+/* ---------------------------------------------------------- the message */
+
+/**
+ * Normalises the typed quantity to a plain number.
+ *
+ * "000001" is a real thing people type, and it has to reach WhatsApp as "1".
+ * Returns null when the field is empty or the value is not a usable positive
+ * quantity — both the validator and the message builder key off that, so
+ * neither can ever emit NaN or a meaningless figure.
+ */
+function normalisedQuantity(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  // A signed quantity is rejected rather than reinterpreted: stripping the
+  // minus below would silently turn "-5" into 5, and quietly correcting a
+  // number the customer typed is worse than asking them to retype it.
+  if (trimmed.includes("-")) return null;
+
+  // Tolerate a typed unit or separators; keep the digits and one point.
+  const numeric = trimmed.replace(/[^\d.]/g, "");
+  if (!numeric) return null;
+
+  const value = Number(numeric);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  // Number() drops the leading zeros and String() gives the shortest exact
+  // form back, so 000001 becomes "1" and 2.50 becomes "2.5".
+  return String(value);
+}
+
+/**
+ * Builds the WhatsApp body as PLAIN ASCII TEXT.
+ *
+ * No emoji, no asterisks, no em dashes — nothing outside printable ASCII. An
+ * earlier version used emoji headings and WhatsApp's own *bold* markers, and
+ * some clients rendered the prefilled text back with literal backslash escapes
+ * and U+FFFD replacement characters. Plain ASCII cannot be mangled that way,
+ * so it stays plain ASCII. Do not reintroduce either.
+ *
+ * Nothing here is escaped by hand. Values are the customer's own text, passed
+ * through untouched apart from trimming, and the ONLY transform applied to the
+ * finished string is a single encodeURIComponent at the URL step. Never add a
+ * markdown escaper, an HTML encoder, or a second encode pass.
+ *
+ * Empty optional fields drop their whole line rather than printing a dash or
+ * "Not provided".
+ */
+function buildMessage(values: FormValues) {
+  const v = (field: FieldName) => values[field].trim();
+
+  const lines: string[] = ["FUELONSPOT - NEW FUEL DELIVERY REQUEST", ""];
+
+  /** Drops the line entirely when the value behind it is empty or absent. */
+  const push = (line: string | false | null) => {
+    if (line) lines.push(line);
+  };
+
+  push(`Name: ${v("name")}`);
+  push(v("company") && `Company: ${v("company")}`);
+  push(`Customer Phone: ${v("phone")}`);
+  push(v("email") && `Email: ${v("email")}`);
+
+  lines.push("", "Delivery Location:", v("location"));
+
+  /* Gathered first, then pushed behind a single blank line only if anything
+     survived. Emitting that separator unconditionally left a double blank line
+     whenever all three of these were empty. */
+  const details: string[] = [];
+  const quantity = normalisedQuantity(v("quantity"));
+  if (quantity) details.push(`Required Quantity: ${quantity} Litres`);
+  if (v("serviceType")) details.push(`Service Type: ${v("serviceType")}`);
+  if (v("deliveryWindow")) {
+    details.push(`Preferred Delivery Time: ${v("deliveryWindow")}`);
+  }
+  if (details.length) lines.push("", ...details);
+
+  if (v("message")) {
+    lines.push("", "Additional Message:", v("message"));
+  }
+
+  lines.push(
+    "",
+    "--------------------------------",
+    "",
+    "Request submitted through the FuelOnSpot website.",
+  );
+
+  return lines.join("\n");
+}
+
+/* -------------------------------------------------------------- validation */
 
 function validate(values: FormValues) {
   const errors: Partial<Record<FieldName, string>> = {};
@@ -121,6 +228,13 @@ function validate(values: FormValues) {
 
   if (!values.location.trim()) {
     errors.location = "Please tell us where the fuel should be delivered.";
+  }
+
+  // Quantity stays optional, but a typed value has to be a real positive
+  // number — otherwise the request would carry a meaningless figure.
+  if (values.quantity.trim() && normalisedQuantity(values.quantity) === null) {
+    errors.quantity =
+      "Enter a quantity greater than zero, or leave this blank.";
   }
 
   return errors;
@@ -239,10 +353,12 @@ export function Contact() {
      rather than being dropped on <body> when the confirmation unmounts. */
   const returnFocus = useRef(false);
 
-  const submitting = status === "submitting";
+  /* Set when window.open comes back null — a blocked popup is the one failure
+     mode this flow has, and it must not look like nothing happened. */
+  const [openFailed, setOpenFailed] = useState(false);
 
   useEffect(() => {
-    if (status === "success") {
+    if (status === "handoff") {
       confirmationRef.current?.focus();
       return;
     }
@@ -276,9 +392,15 @@ export function Contact() {
     });
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  /**
+   * Hands the request to WhatsApp. Deliberately NOT async: `window.open` only
+   * counts as user-initiated while the click's activation is still live, and a
+   * single `await` here is enough for a popup blocker to swallow the tab. So
+   * everything between the submit and the open stays synchronous — which also
+   * means there is no real pending phase worth showing a spinner for.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
 
     const found = validate(values);
     // Flushed, not batched: `aria-invalid` and `aria-describedby` have to be
@@ -292,17 +414,28 @@ export function Contact() {
       return;
     }
 
-    setStatus("submitting");
-    // There is no backend. The delay exists so the pending state is a real
-    // state the user can see, not a frame that flashes past.
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setStatus("success");
+    openWhatsApp();
+  }
+
+  function openWhatsApp() {
+    const url = `${whatsappHref}?text=${encodeURIComponent(buildMessage(values))}`;
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+
+    if (win) {
+      setOpenFailed(false);
+      setStatus("handoff");
+    } else {
+      // Blocked, or no handler. Stay on the form with everything typed intact
+      // so the number below is the way out.
+      setOpenFailed(true);
+    }
   }
 
   function handleReset() {
     returnFocus.current = true;
     setValues(EMPTY);
     setErrors({});
+    setOpenFailed(false);
     setStatus("idle");
   }
 
@@ -332,7 +465,7 @@ export function Contact() {
           {/* -------------------------------------------------------- form */}
           <Reveal delay={70} className="lg:col-span-7 xl:col-span-8">
             <div className="rounded-[4px] border border-line bg-white p-6 sm:p-8 lg:p-9">
-              {status === "success" ? (
+              {status === "handoff" ? (
                 <div
                   ref={confirmationRef}
                   tabIndex={-1}
@@ -347,48 +480,76 @@ export function Contact() {
                   </span>
 
                   <h3 className="text-h3 mt-5 text-navy-800">
-                    Request received
+                    Ready to send in WhatsApp
                   </h3>
 
                   {/* Echoing user input: `break-words` keeps a long unspaced
                       address from pushing the card past the viewport at 375px. */}
                   <p className="mt-4 break-words text-[0.9375rem] leading-relaxed text-ink-500">
-                    Logged for delivery to{" "}
+                    Your request for{" "}
                     <span className="font-semibold text-navy-800">
                       {values.location.trim()}
                     </span>
-                    {values.quantity.trim() ? (
+                    {normalisedQuantity(values.quantity) ? (
                       <>
-                        , quantity{" "}
+                        {" "}
+                        (
                         <span className="nums font-semibold text-navy-800">
-                          {values.quantity.trim()}
-                        </span>{" "}
-                        litres
+                          {normalisedQuantity(values.quantity)} Litres
+                        </span>
+                        )
                       </>
-                    ) : null}
-                    .
+                    ) : null}{" "}
+                    is prepared in WhatsApp.
                   </p>
 
+                  {/* Stated plainly: nothing has reached us yet. The form must
+                      not take credit for a message the customer has not sent. */}
                   <p className="mt-3 text-[0.9375rem] leading-relaxed text-ink-500">
-                    Our team will call you back on{" "}
-                    <span className="nums font-semibold text-navy-800">
-                      {values.phone.trim()}
+                    <span className="font-semibold text-navy-800">
+                      Press Send in WhatsApp
                     </span>{" "}
-                    to confirm quantity, timing and price.
+                    to deliver it to our team — it does not reach us until you
+                    do.
                   </p>
 
                   <div className="mt-7 border-t border-line pt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="lg"
-                      onClick={handleReset}
-                      className="w-full xs:w-auto"
-                    >
-                      Send another request
-                    </Button>
+                    <div className="flex flex-col gap-3 xs:flex-row xs:flex-wrap">
+                      {/* WhatsApp may have been opened in a tab the customer
+                          has since closed, so re-opening stays one click away
+                          for as long as the values are still on screen. */}
+                      <Button
+                        type="button"
+                        size="lg"
+                        onClick={openWhatsApp}
+                        className="justify-center"
+                      >
+                        <MessageCircle
+                          className="size-4"
+                          strokeWidth={2.1}
+                          aria-hidden="true"
+                        />
+                        Open WhatsApp again
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="lg"
+                        onClick={handleReset}
+                        className="justify-center"
+                      >
+                        Start a new request
+                      </Button>
+                    </div>
                     <p className="mt-3.5 text-[0.8125rem] text-ink-500">
-                      Demo form — submissions are not sent anywhere.
+                      Prefer to talk? Call{" "}
+                      <a
+                        href={site.phoneHref}
+                        className="nums font-semibold text-navy-800 underline decoration-line-strong underline-offset-4 transition-colors duration-200 hover:text-fuel-700"
+                      >
+                        {site.phoneDisplay}
+                      </a>
+                      .
                     </p>
                   </div>
                 </div>
@@ -397,7 +558,6 @@ export function Contact() {
                   noValidate
                   onSubmit={handleSubmit}
                   aria-labelledby="contact-title"
-                  aria-busy={submitting || undefined}
                 >
                   <p className="text-[0.8125rem] text-ink-500">
                     <span className="font-semibold text-fuel-600">*</span>{" "}
@@ -405,7 +565,12 @@ export function Contact() {
                   </p>
 
                   <div className="mt-5 grid gap-x-5 gap-y-5 sm:grid-cols-2">
-                    <Field id={ID.name} label="Name" required error={errors.name}>
+                    <Field
+                      id={ID.name}
+                      label="Name"
+                      required
+                      error={errors.name}
+                    >
                       <input
                         {...fieldProps("name", true)}
                         type="text"
@@ -472,7 +637,11 @@ export function Contact() {
                       />
                     </Field>
 
-                    <Field id={ID.quantity} label="Required Quantity (litres)">
+                    <Field
+                      id={ID.quantity}
+                      label="Required Quantity (litres)"
+                      error={errors.quantity}
+                    >
                       <input
                         {...fieldProps("quantity")}
                         type="text"
@@ -549,29 +718,41 @@ export function Contact() {
                     <Button
                       type="submit"
                       size="lg"
-                      disabled={submitting}
                       className="w-full xs:w-auto"
                     >
-                      Request Fuel Delivery
-                      {/* The spinner takes the arrow's slot rather than sitting
-                          opposite it, so the label does not shift on submit. */}
-                      {submitting ? (
-                        <Loader2
-                          className="size-4 animate-spin"
-                          strokeWidth={2.2}
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <ArrowRight
-                          className="size-4 transition-transform duration-200 group-hover/btn:translate-x-1"
-                          strokeWidth={2.2}
-                          aria-hidden="true"
-                        />
-                      )}
+                      <MessageCircle
+                        className="size-4"
+                        strokeWidth={2.1}
+                        aria-hidden="true"
+                      />
+                      Send Request on WhatsApp
                     </Button>
+
+                    {/* Says what the button actually does before it is pressed,
+                        so opening another app is never a surprise. */}
                     <p className="mt-3.5 text-[0.8125rem] text-ink-500">
-                      Demo form — submissions are not sent anywhere.
+                      Your request opens in WhatsApp for you to review and send.
                     </p>
+
+                    {/* role="alert" so the failure is announced, not just
+                        painted. Rendered only after an open actually fails. */}
+                    {openFailed ? (
+                      <p
+                        role="alert"
+                        className="mt-3.5 rounded-[3px] border border-line-strong bg-surface-alt px-4 py-3 text-[0.8125rem] leading-relaxed text-ink-600"
+                      >
+                        Unable to open WhatsApp — your browser may have blocked
+                        it. Nothing you typed has been lost. Please contact us
+                        at{" "}
+                        <a
+                          href={site.phoneHref}
+                          className="nums font-semibold text-navy-800 underline decoration-line-strong underline-offset-4 transition-colors duration-200 hover:text-fuel-700"
+                        >
+                          {site.phoneDisplay}
+                        </a>
+                        .
+                      </p>
+                    ) : null}
                   </div>
                 </form>
               )}
@@ -586,13 +767,15 @@ export function Contact() {
             className="order-first lg:order-none lg:col-span-5 xl:col-span-4"
           >
             {/* A column, because on lg the panel stretches to the form's
-                height: the slack goes to the middle block and the 24×7 line
+                height: the slack goes to the middle block and the closing note
                 stays pinned to the bottom rule instead of floating mid-panel. */}
             <div className="blueprint-grid flex h-full flex-col rounded-[4px] border border-navy-900 bg-navy-950 p-7 lg:p-8">
               <PanelBlock icon={PhoneCall} label="Call now">
                 <a
                   href={site.phoneHref}
-                  className="nums mt-1 block py-1.5 font-display text-[1.5rem] font-extrabold leading-none tracking-[-0.02em] text-white transition-colors duration-200 hover:text-fuel-400"
+                  /* py-2.5 on a 24px line clears 44px: on a phone this number
+                     is the primary tap target, not just a heading. */
+                  className="nums mt-1 block py-2.5 font-display text-[1.5rem] font-extrabold leading-none tracking-[-0.02em] text-white transition-colors duration-200 hover:text-fuel-400"
                 >
                   {site.phoneDisplay}
                 </a>
@@ -601,22 +784,27 @@ export function Contact() {
                   size="md"
                   className="mt-2.5 w-full"
                 >
-                  <Phone className="size-4" strokeWidth={2.1} aria-hidden="true" />
+                  <Phone
+                    className="size-4"
+                    strokeWidth={2.1}
+                    aria-hidden="true"
+                  />
                   Call Now
                 </ButtonLink>
               </PanelBlock>
 
+              {/* Location → address → email → coverage, in the order someone
+                  checking us out actually asks for them. The number stays
+                  pinned above this block: it is the fastest path to a
+                  delivery, so nothing pushes it down. */}
               <div className="mt-7 grow space-y-6 border-t border-white/10 pt-7">
-                <PanelBlock icon={Mail} label="Email">
-                  <a
-                    href={site.emailHref}
-                    className="mt-0.5 block break-words py-1.5 text-[0.9375rem] text-onnavy-100 underline decoration-white/25 underline-offset-4 transition-colors duration-200 hover:text-fuel-400 hover:decoration-fuel-400"
-                  >
-                    {site.email}
-                  </a>
+                <PanelBlock icon={MapPin} label="Location">
+                  <p className="mt-2 text-[0.9375rem] leading-relaxed text-onnavy-100">
+                    {site.addressShort}
+                  </p>
                 </PanelBlock>
 
-                <PanelBlock icon={MapPin} label="Address">
+                <PanelBlock icon={Building2} label="Address">
                   <address className="mt-2 not-italic text-[0.9375rem] leading-relaxed text-onnavy-300">
                     {site.addressLines.map((line) => (
                       <span key={line} className="block break-words">
@@ -631,7 +819,7 @@ export function Contact() {
                     aria-label={`View ${site.addressShort} on the map (opens in a new tab)`}
                     className="mt-1 inline-flex items-center gap-1.5 py-1.5 text-[0.8125rem] font-semibold text-fuel-400 transition-colors duration-200 hover:text-white"
                   >
-                    {site.addressShort}
+                    View on map
                     <ExternalLink
                       className="size-3.5 shrink-0"
                       strokeWidth={2}
@@ -639,19 +827,44 @@ export function Contact() {
                     />
                   </a>
                 </PanelBlock>
+
+                <PanelBlock icon={Mail} label="Email">
+                  <a
+                    href={site.emailHref}
+                    className="mt-0.5 block break-words py-1.5 text-[0.9375rem] text-onnavy-100 underline decoration-white/25 underline-offset-4 transition-colors duration-200 hover:text-fuel-400 hover:decoration-fuel-400"
+                  >
+                    {site.email}
+                  </a>
+                </PanelBlock>
+
+                {/* Chips rather than a stacked list: four short names wrap
+                    inside the panel at any width, and the row stays one
+                    object instead of four lines of ragged text. */}
+                <PanelBlock icon={Map} label="Delivering in">
+                  <ul role="list" className="mt-2.5 flex flex-wrap gap-1.5">
+                    {serviceAreas.map((area) => (
+                      <li
+                        key={area.name}
+                        className="rounded-[3px] border border-white/15 px-2.5 py-1 text-[0.8125rem] leading-5 text-onnavy-100"
+                      >
+                        {area.name}
+                      </li>
+                    ))}
+                  </ul>
+                </PanelBlock>
               </div>
 
               <div className="mt-7 flex gap-3.5 border-t border-white/10 pt-6">
-                <Clock
+                <ShieldCheck
                   aria-hidden="true"
                   strokeWidth={1.7}
                   className="mt-0.5 size-[1.15rem] shrink-0 text-fuel-400"
                 />
                 <p className="min-w-0 flex-1 text-[0.9375rem] leading-relaxed text-onnavy-300">
                   <span className="block font-semibold text-white">
-                    {helpline.title}
+                    {assurance.title}
                   </span>
-                  {helpline.note}
+                  {assurance.note}
                 </p>
               </div>
             </div>

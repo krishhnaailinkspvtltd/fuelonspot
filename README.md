@@ -1,7 +1,8 @@
 # FuelOnSpot — marketing site
 
 Production-quality single-page marketing site for **FuelOnSpot**, a doorstep
-diesel delivery and mobile refueling operator based in Vadodara, Gujarat.
+diesel delivery and mobile refueling operator based at Kalol, Panchmahal,
+Gujarat, delivering in Panchmahal, Vadodara, Chota Udepur and Savli.
 
 ## Stack
 
@@ -40,7 +41,9 @@ src/
 public/
   fuelonspot-logo.png     supplied logo, background removed, unmodified colours
   fuelonspot-mark.png     emblem only
-  images/                 photography (cropped and optimised)
+  images/                 photography (cropped and optimised), the supplied
+                          "7 Lakh+ LTR" campaign poster, and leadership/ with
+                          the two supplied studio portraits
 scripts/                  one-off asset build scripts (sharp)
 ```
 
@@ -62,4 +65,11 @@ Change `src/lib/site.ts`. Nothing else should hold user-visible strings.
 `scripts/build-logo.mjs` and `scripts/build-mark.mjs` regenerate the PNG assets
 from `logo-source.jpeg` (luminance-keyed alpha to drop the paper background,
 then a tight trim). `scripts/build-images.mjs` crops and compresses the
-photography. Re-run with `node scripts/<name>.mjs`.
+photography. `scripts/build-people-and-poster.mjs` produces the two leadership
+portraits and the campaign poster — crop and scale only, no retouching. Each
+script consumes a `.raw.*` input and removes it; the header of each file lists
+what it expects. Re-run with `node scripts/<name>.mjs`.
+
+`scripts/build-coverage-map.mjs` regenerates `src/lib/coverage-map.ts`, the real
+district geometry behind the coverage map, from a geoBoundaries extract cached
+in `.cache/` (gitignored; the script header has the download command).

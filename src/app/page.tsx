@@ -3,6 +3,7 @@ import { Footer } from "@/components/layout/Footer";
 import { StructuredData } from "@/components/StructuredData";
 import { Hero } from "@/components/sections/Hero";
 import { TrustStrip } from "@/components/sections/TrustStrip";
+import { Achievement } from "@/components/sections/Achievement";
 import { ValueProposition } from "@/components/sections/ValueProposition";
 import { Solutions } from "@/components/sections/Solutions";
 import { HowItWorks } from "@/components/sections/HowItWorks";
@@ -35,6 +36,7 @@ export default function HomePage() {
 
         <Hero />
         <TrustStrip />
+        <Achievement />
         <ValueProposition />
         <Solutions />
         <HowItWorks />

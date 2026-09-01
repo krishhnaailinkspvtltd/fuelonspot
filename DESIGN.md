@@ -30,8 +30,16 @@ actionable or live.
 4. **Separate sections with a hairline**, not with a colour blob. The `Section`
    primitive already adds `border-t border-line`.
 5. **No invented content.** No statistics, percentages, counters, years in
-   business, client counts, awards, certifications, partner or customer logos.
-   If a number is not in `src/lib/site.ts`, it does not go on the page.
+   business, client counts, awards or certifications. If a number is not in
+   `src/lib/site.ts`, it does not go on the page. Customer logos appear ONLY
+   where the operator supplied the file, used unmodified — never one taken from
+   the web, never a generated approximation, and never recoloured or recropped
+   to tidy up a grid. A client with no supplied file stays a typographic card
+   (`logo: null`). The one
+   third-party name on the site is `association` (Jio-bp), operator-supplied and
+   set as **text** — there is no authorised logo asset for it, and it appears in
+   exactly two places (hero badge, footer). Do not spread it further, and do not
+   add a mark cropped out of the campaign posters.
 6. **No lorem ipsum, no filler.** Every line must say something a buyer cares
    about.
 7. **One icon per idea.** Do not decorate. Icons come from
@@ -147,19 +155,64 @@ files (all under `public/images/`):
 
 | file | intrinsic | subject |
 |---|---|---|
-| `hero-refueling.jpg` | 1600×1200 | road tanker in traffic at dusk |
+| `hero-refueling.jpg` | 1600×1200 | road tanker at dusk — JSON-LD `image` only, no longer on the page |
 | `construction-site.jpg` | 1200×900 | excavator on an active site |
 | `industrial-facility.jpg` | 1200×900 | process plant lit at twilight |
 | `backup-generator.jpg` | 1200×900 | enclosed standby DG set |
 | `commercial-fleet.jpg` | 1200×900 | line of tanker trucks at a depot |
 | `fuel-operations.jpg` | 1200×1400 | petroleum transport tanker (portrait) |
+| `fuelonspot-diesel-delivery.webp` | 1254×1005 | supplied hero poster (Jio-bp lockup, 7 Lakh figure, phone) |
+| `fuelonspot-7-lakh-delivered.webp` | 1122×1402 | supplied "7 Lakh+ LTR" campaign poster |
+| `leadership/vipul-p-shah.webp` | 900×1125 | Vipul P. Shah, Founder (studio portrait) |
+| `leadership/nirmit-d-shah.webp` | 900×1125 | Nirmit D. Shah, Co-Founder (studio portrait) |
 
-`solutions[]` in `site.ts` already carries `image` and `imageAlt`.
+`solutions[]` in `site.ts` already carries `image` and `imageAlt`; so do
+`achievement` (`poster` / `posterAlt`) and each `leadership[]` entry (`photo` /
+`photoAlt`). The two portraits are paired with their person in `site.ts` — do
+not swap them, and do not retouch either face.
+
+Both supplied posters are shown **whole**: `h-auto w-full` inside a bordered
+frame, never a fixed aspect box with `object-cover`. They carry a Jio-bp
+lockup, a phone number and the delivery figure, and none of that may be
+cropped. Do not lay scrims, corner rules or caption cards over finished
+artwork either.
+
+## The coverage map
+
+`components/coverage/CoverageMap.tsx` draws **real administrative boundaries**,
+not an illustration. Geometry lives in the generated `lib/coverage-map.ts`
+(rebuild with `node scripts/build-coverage-map.mjs`); pin positions come from
+the real `lon`/`lat` on each `serviceAreas[]` entry and are projected with the
+same maths as the paths, so the two can never drift.
+
+- No map library and no tile server. Nothing pans or zooms, so an inline SVG
+  beats shipping Leaflet plus network tiles for a picture that is only looked at.
+- The graphic and its legend are `aria-hidden`; the list beside it is the
+  accessible control. The licence credit sits outside that subtree because it
+  contains a real link.
+- **Keep the geoBoundaries credit under the map** — CC BY 4.0 / ODbL require it.
+- Never hand-edit the path strings, and never add a service area to the map
+  without a verified coordinate.
 
 ## Phone / email / links
 
-Always `site.phoneHref` (`tel:8448444704`), `site.emailHref`
-(`mailto:Info@readyfuel.in`). Display the number with the `nums` utility.
+Always `site.phoneHref` (`tel:+919998621701`) and `site.emailHref`
+(`mailto:info@fuelonspot.com`). Display them with `site.phoneDisplay`
+(`+91 99986 21701`) and `site.email` (`info@fuelonspot.com`), and put the `nums`
+utility on any rendered number. Never hardcode any of them — they all live in
+`site.ts` and every reference on the page derives from them. For E.164
+(schema.org `telephone`) strip the scheme off `phoneHref`; do not rebuild it
+from `phoneDisplay`.
+
+`site.phoneAltDisplay` / `phoneAltHref` (`+91 94280 28112`) is a **second line
+listed in the footer only**. Every CTA — navbar, hero, emergency band, contact
+panel, FAQ, service areas — stays on the primary number, so there is exactly
+one number to call from anywhere that asks for a delivery.
+
+**There are no operating hours.** No 24×7, no "round the clock", no "at any
+hour", and no `openingHoursSpecification` in the JSON-LD. `site.tagline`
+("Mobile Refueling | Anytime. Anywhere.") stays — that is the supplied logo
+artwork's own wording, not an hours claim.
 
 ## Deliverable shape
 

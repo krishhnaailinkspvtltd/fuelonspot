@@ -1,7 +1,7 @@
-import { ArrowUp, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowUp, Mail, Map, MapPin, Phone } from "lucide-react";
 import { Container } from "@/components/ui/Container";
 import { Logo } from "@/components/ui/Logo";
-import { navItems, site } from "@/lib/site";
+import { association, navItems, serviceAreas, site } from "@/lib/site";
 
 /**
  * Site footer. Deliberately not built on the `Section` primitive: it is a page
@@ -27,9 +27,18 @@ export function Footer() {
             <p className="mt-6 max-w-sm text-sm leading-relaxed text-onnavy-300">
               {site.name} is doorstep diesel delivery for industries,
               construction sites, generators, commercial fleets and
-              institutions across nine districts of Gujarat. Quantity and
-              quality are verified with your team at handover, and the helpline
-              runs 24×7.
+              institutions, dispatched from Kalol in Panchmahal. Quantity and
+              quality are verified with your team at handover.
+            </p>
+
+            {/* The quiet second (and last) statement of the association — the
+                hero badge is the other. Set in the footer's muted tone so it
+                reads as provenance, not as a claim. */}
+            <p className="mt-5 text-[0.8125rem] text-onnavy-500">
+              {association.label}{" "}
+              <span className="font-semibold text-onnavy-100">
+                {association.partner}
+              </span>
             </p>
           </div>
 
@@ -61,10 +70,14 @@ export function Footer() {
           <div className="lg:col-span-4">
             <h2 className="text-micro font-sans text-onnavy-500">Contact</h2>
 
-            {/* Vertical padding (and min-h-11 on the shorter email row) keeps
-                every tappable row at 44px; the address is static text so it
-                only needs the matching optical gap. */}
+            {/* Vertical padding (and min-h-11 on the shorter rows) keeps every
+                tappable row at 44px; the address is static text so it only
+                needs the matching optical gap. */}
             <div className="mt-3 space-y-1">
+              {/* Both numbers are listed here and only here — the footer is the
+                  directory, every CTA elsewhere on the page uses the primary.
+                  The second sits at body size under the display-size first so
+                  the pair reads as primary/secondary, not as a choice. */}
               <a
                 href={site.phoneHref}
                 className="group flex items-start gap-3 py-2 text-white"
@@ -79,6 +92,16 @@ export function Footer() {
                 </span>
               </a>
 
+              {/* The icon column is held open with a same-width spacer rather
+                  than a second phone glyph: one idea, one icon. */}
+              <a
+                href={site.phoneAltHref}
+                className="flex min-h-11 items-center gap-3 py-2 text-sm text-onnavy-300 transition-colors duration-200 hover:text-white"
+              >
+                <span aria-hidden="true" className="size-4 shrink-0" />
+                <span className="nums">{site.phoneAltDisplay}</span>
+              </a>
+
               <a
                 href={site.emailHref}
                 className="flex min-h-11 items-center gap-3 py-2 text-sm text-onnavy-300 transition-colors duration-200 hover:text-white"
@@ -88,7 +111,7 @@ export function Footer() {
                   strokeWidth={1.8}
                   aria-hidden="true"
                 />
-                {/* min-w-0 lets the email wrap inside the flex row instead of
+                {/* min-w-0 lets the address wrap inside the flex row instead of
                     pushing the column wider on a 375px screen. */}
                 <span className="min-w-0 break-words">{site.email}</span>
               </a>
@@ -107,6 +130,24 @@ export function Footer() {
                   ))}
                 </span>
               </address>
+
+              {/* Coverage, rendered from `serviceAreas` so the footer can never
+                  fall out of step with the service-areas section. */}
+              <div className="flex items-start gap-3 pt-3 text-sm text-onnavy-300">
+                <Map
+                  className="mt-0.5 size-4 shrink-0 text-fuel-400"
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0">
+                  <span className="text-micro block font-sans text-onnavy-500">
+                    Delivering in
+                  </span>
+                  <span className="mt-1.5 block break-words leading-6">
+                    {serviceAreas.map((area) => area.name).join(" · ")}
+                  </span>
+                </span>
+              </div>
             </div>
           </div>
         </div>

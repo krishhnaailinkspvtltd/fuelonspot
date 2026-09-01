@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated-map source data (fetched by scripts/build-coverage-map.mjs)
+/.cache/

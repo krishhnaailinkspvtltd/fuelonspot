@@ -1,8 +1,16 @@
-import { about, districts, faqs, leadership, site, solutions } from "@/lib/site";
+import {
+  about,
+  faqs,
+  leadership,
+  serviceAreas,
+  site,
+  solutions,
+} from "@/lib/site";
 
 /**
  * JSON-LD for the single-page site. Everything here mirrors copy that is
- * actually on the page — no ratings, no review counts, no invented claims.
+ * actually on the page — no ratings, no review counts, no opening hours and no
+ * invented claims.
  */
 export function StructuredData() {
   const business = {
@@ -12,40 +20,36 @@ export function StructuredData() {
     slogan: site.proposition,
     description: about.paragraphs[0],
     url: site.url,
-    telephone: `+91${site.phoneDisplay.replace(/\D/g, "")}`,
+    // Taken from the tel: href, which is already E.164 — deriving it from the
+    // formatted display string would double the country code.
+    telephone: site.phoneHref.replace(/^tel:/, ""),
     email: site.email,
     logo: `${site.url}/fuelonspot-logo.png`,
     image: `${site.url}/images/hero-refueling.jpg`,
+    // Split out of `site.addressParts`, which sits directly beside the
+    // printed `addressLines` so the two cannot drift. No geo coordinates and
+    // no place id: neither has been supplied, and neither may be guessed.
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Ajwa Road",
-      addressLocality: "Vadodara",
-      postalCode: "390019",
-      addressRegion: "Gujarat",
-      addressCountry: "IN",
+      streetAddress: site.addressParts.street,
+      addressLocality: site.addressParts.locality,
+      postalCode: site.addressParts.postalCode,
+      addressRegion: site.addressParts.region,
+      addressCountry: site.addressParts.country,
     },
-    areaServed: districts.map((d) => ({
+    areaServed: serviceAreas.map((area) => ({
       "@type": "AdministrativeArea",
-      name: `${d.name}, Gujarat`,
+      name: `${area.name}, ${site.addressParts.region}`,
     })),
-    openingHoursSpecification: {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ],
-      opens: "00:00",
-      closes: "23:59",
-    },
+    // No openingHoursSpecification: the operating hours are not verified, and
+    // schema.org is the last place to guess at them.
+    // Name, title and portrait only — no biographies, dates, credentials or
+    // social profiles exist for either person, so none are asserted.
     founder: leadership.map((person) => ({
       "@type": "Person",
       name: person.name,
       jobTitle: person.role,
+      image: `${site.url}${person.photo}`,
     })),
     hasOfferCatalog: {
       "@type": "OfferCatalog",

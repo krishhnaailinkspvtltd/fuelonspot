@@ -17,8 +17,9 @@ import { faqs, hero, site } from "@/lib/site";
  * first, not a number they already passed in the header. Only one instance is
  * ever displayed, so only one is ever in the accessibility tree.
  *
- * The caption is `hero.status`, not a new sentence: the helpline hours are
- * already stated once in site.ts and there is no second wording for them.
+ * The caption is `hero.status`, not a new sentence: the service is described
+ * once in site.ts and there is no second wording for it. It says what the
+ * service is, never when it is open — operating hours are not verified.
  */
 function HelplineCard({ className }: { className?: string }) {
   return (

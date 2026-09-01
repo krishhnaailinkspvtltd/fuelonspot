@@ -4,7 +4,7 @@ import { Section } from "@/components/ui/Section";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { ButtonLink } from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
-import { emergencyCta, site } from "@/lib/site";
+import { emergencyCta, serviceAreas, site } from "@/lib/site";
 
 /**
  * The conversion band — the page's second-strongest ask after the contact form.
@@ -43,9 +43,10 @@ export function EmergencyCTA() {
               The spacing tokens below are the ones SectionHeading uses. */}
           <Reveal className="lg:min-w-0 lg:flex-1">
             <Eyebrow tone="dark" className="justify-center lg:justify-start">
-              {/* Live dot, same treatment as the hero status chip. This and the
-                  hero are the only two looping elements on the page — an
-                  always-on helpline is the one claim worth animating. */}
+              {/* Live dot, same treatment as the hero status chip. This and
+                  the hero are the only two looping elements on the page. It is
+                  a brand flourish, not an availability claim — operating hours
+                  are not verified and nothing here may imply them. */}
               <span aria-hidden="true" className="relative flex size-2 shrink-0">
                 <span className="absolute inline-flex size-2 rounded-full bg-fuel-500 [animation:fos-pulse-ring_2.4s_ease-out_infinite]" />
                 <span className="relative inline-flex size-2 rounded-full bg-fuel-500" />
@@ -95,7 +96,8 @@ export function EmergencyCTA() {
             </div>
 
             <p className="mt-5 border-t border-white/10 pt-4 text-[0.8125rem] text-onnavy-500">
-              Helpline open 24×7
+              Doorstep fuel delivery across{" "}
+              {serviceAreas.map((area) => area.name).join(", ")}
             </p>
           </Reveal>
         </div>
