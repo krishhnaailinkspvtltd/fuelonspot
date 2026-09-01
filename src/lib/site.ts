@@ -43,7 +43,14 @@ export const site = {
   },
   mapsHref:
     "https://www.google.com/maps/search/?api=1&query=Jay+Narayan+Filling+Station+Halol+Kalol+Road+Madhvas+Kalol+Panchmahal+389330",
-  url: "https://fuelonspot.in",
+  /* The live production origin, and the single source for every absolute URL
+     the site emits: metadataBase, the canonical tag, og:url, the sitemap
+     <loc>, the Sitemap: line in robots.txt and every JSON-LD @id/image.
+
+     This previously read "https://fuelonspot.in", which does not resolve at
+     all — so the homepage was serving a canonical tag pointing at a dead host.
+     Only ever set this to an origin that actually answers. */
+  url: "https://fuelonspot.com",
 } as const;
 
 /**
